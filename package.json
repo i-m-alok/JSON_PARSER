@@ -1,0 +1,13 @@
+{
+  "name": "json-parser",
+  "version": "1.0.0",
+  "description": "This package will be to validate the input is valid json or not.",
+  "main": "main.tsx",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Alok Mishra",
+  "license": "ISC",
+  "keywords": []
+}
