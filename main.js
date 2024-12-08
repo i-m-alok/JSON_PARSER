@@ -36,12 +36,9 @@ export const TOKEN = {
   WHITE_SPACE: " "
 };
 
-function tokenizer(path) {
+function tokenizer(fileData) {
   const tokens = [];
-  const fileData = readFileSync(path);
-  console.log(fileData.length);
   for (let index = 0; index < fileData.length; index++) {
-    console.log(index, fileData[index], fileData[index] == /\n/);
     switch (fileData[index]) {
       case TOKEN.OBJECT_OPEN_BRACES:
       case TOKEN.OBJECT_CLOSE_BRACES:
@@ -65,7 +62,7 @@ function tokenizer(path) {
       case TOKEN.NULL:
       case TOKEN.FALSE:
       case TOKEN.TRUE:
-        index = findLastIndexOfToken(fileData, index, ["}", ","], tokens);
+        index = findLastIndexOfToken(fileData, index, ["}", ","], tokens)-1;
         break;
       case TOKEN.STRING:
         index = findLastIndexOfToken(fileData, index + 1, ["}", '"'], tokens);
@@ -79,7 +76,8 @@ function tokenizer(path) {
         break;
     }
   }
-  console.log(tokens);
+  console.log(tokens)
+  return tokens
 }
 
 const findLastIndexOfToken = (input, startIndex, terminationChars, tokens) => {
@@ -87,9 +85,68 @@ const findLastIndexOfToken = (input, startIndex, terminationChars, tokens) => {
   while (i < input.length && !terminationChars.includes(input[i])) {
     i++;
   }
-  console.log(i);
   tokens.push(input.slice(startIndex, i));
   return i;
 };
 
-tokenizer("input.json");
+
+function parser(path){
+
+  // read the data from file
+  const inputData = readFileSync(path);
+
+  // break data into meaningful tokens
+  const tokens = tokenizer(inputData);
+
+  // lets parse the data
+  
+  // consider ":", "," as operators
+  const operatorStack = []
+  // anything except operator is token 
+  const tokenStack = []
+  
+  for(let index in  tokens){
+   let x = tokens[index]
+   console.log(x, operatorStack, tokenStack)
+    // push operators to operator stack
+    if([",", ":"].includes(x)){
+      operatorStack.push(x)
+      continue
+    }
+    const lengthOfOperatorStack = operatorStack.length
+    const lengthOfTokenStack = tokenStack.length
+    
+    // if stack top is "{" and current token is "}"
+    // or stack top is "[" and current token is "]"
+    if(["]", "}"].includes(x)){
+      if(lengthOfTokenStack && ((tokenStack[lengthOfTokenStack-1]==TOKEN.ARRAY_OPEN_BRACES && x==TOKEN.ARRAY_CLOSE_BRACES) || (tokenStack[lengthOfTokenStack-1]==TOKEN.OBJECT_OPEN_BRACES && x==TOKEN.OBJECT_CLOSE_BRACES))){
+        tokenStack.pop()
+        continue;
+      }
+      console.log("come here",(tokenStack[lengthOfTokenStack-1]==TOKEN.ARRAY_OPEN_BRACES && x==TOKEN.ARRAY_CLOSE_BRACES),  (tokenStack[lengthOfTokenStack-1]==TOKEN.OBJECT_OPEN_BRACES && x==TOKEN.OBJECT_CLOSE_BRACES))
+      // this is no pair of braces, exit the program
+      process.exit(1);
+    }
+    // if top of operatorStack is ":" and there is some value in tokenStack, consider them as key:value pair 
+    if(lengthOfOperatorStack && operatorStack[lengthOfOperatorStack-1]==TOKEN.COLON && lengthOfTokenStack){
+      tokenStack.pop()
+      operatorStack.pop()
+      continue;
+    }
+
+    if(lengthOfOperatorStack && operatorStack[lengthOfOperatorStack-1]==TOKEN.COMMA){
+      operatorStack.pop()
+    }
+
+    tokenStack.push(x)
+  }
+  console.log("operatorStack", operatorStack, tokenStack)
+  console.log(("tokenStack", tokenStack))
+  if(operatorStack.length || tokenStack.length){
+    process.exit(1)
+  }
+  process.exit(0)
+}
+
+
+parser("input.json");
